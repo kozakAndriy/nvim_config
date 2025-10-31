@@ -1,5 +1,3 @@
--- - Set <space> as the leader key
---  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
@@ -134,73 +132,30 @@ rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
 
-  'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
+  -- 'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
+  'matze/vim-move',
 
-  'simrat39/rust-tools.nvim',
+  -- {
+  --   'pmizio/typescript-tools.nvim',
+  --   dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+  --   opts = {},
+  -- },
+
   {
-    'pmizio/typescript-tools.nvim',
-    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
-    opts = {},
+    'mrcjkb/rustaceanvim',
+    version = '^6',
+    lazy = false,
   },
 
-  'matze/vim-move',
-  -- NOTE: Plugins can also be added by using a table,
-  -- with the first argument being the link and the following
-  -- keys can be used to configure plugin behavior/loading/etc.
-  --
-  -- Use `opts = {}` to automatically pass options to a plugin's `setup()` function, forcing the plugin to be loaded.
-  --
   {
     'nvim-flutter/flutter-tools.nvim',
     lazy = false,
     dependencies = {
       'nvim-lua/plenary.nvim',
-      'stevearc/dressing.nvim', -- optional for vim.ui.select
     },
     config = true,
   },
-
-  -- Alternatively, use `config = function() ... end` for full control over the configuration.
-  -- If you prefer to call `setup` explicitly, use:
-  --    {
-  --        'lewis6991/gitsigns.nvim',
-  --        config = function()
-  --            require('gitsigns').setup({
-  --                -- Your gitsigns configuration here
-  --            })
-  --        end,
-  --    }
-  --
-  -- Here is a more advanced example where we pass configuration
-  -- options to `gitsigns.nvim`.
-  --
-  -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
-    'lewis6991/gitsigns.nvim',
-    opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
-    },
-  },
-
-  -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
-  --
-  -- This is often very useful to both group configuration, as well as handle
-  -- lazy loading plugins that don't need to be loaded immediately at startup.
-  --
-  -- For example, in the following configuration, we use:
-  --  event = 'VimEnter'
-  --
-  -- which loads which-key before all the UI elements are loaded. Events can be
-  -- normal autocommands events (`:help autocmd-events`).
-  --
-  -- Then, because we use the `opts` key (recommended), the configuration runs
-  -- after the plugin has been loaded as `require(MODULE).setup(opts)`.
+  'mfussenegger/nvim-jdtls',
 
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -459,8 +414,6 @@ require('lazy').setup({
           --  To jump back, press <C-t>.
           map('grd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
 
-          -- WARN: This is not Goto Definition, this is Goto Declaration.
-          --  For example, in C this would take you to the header.
           map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
           -- Fuzzy find all the symbols in your current document.
@@ -489,9 +442,8 @@ require('lazy').setup({
           local function client_supports_method(client, method, bufnr)
             if vim.fn.has 'nvim-0.11' == 1 then
               return client:supports_method(method, bufnr)
-            else
-              return client.supports_method(method, { bufnr = bufnr })
             end
+            return false
           end
 
           -- The following two autocommands are used to highlight references of the
@@ -629,6 +581,24 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+
+      vim.lsp.enable 'jdtls' -- You only need to call this once
+      vim.lsp.config('jdtls', {
+        settings = {
+          format = {}, -- This is for general LSP, not jdtls formatting
+          java = {
+            -- Custom eclipse.jdt.ls options go here
+            format = {
+              settings = {
+                -- Use spaces instead of tabs
+                ['org.eclipse.jdt.core.formatter.tabulation.char'] = 'space',
+                -- Set indentation size to 4
+                ['org.eclipse.jdt.core.formatter.tabulation.size'] = '4',
+              },
+            },
+          },
+        },
+      })
 
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
@@ -966,86 +936,86 @@ require('flutter-tools').setup {
   },
 }
 
-local rt = require 'rust-tools'
+-- local rt = require 'rust-tools'
+--
+-- rt.setup {
+--   server = {
+--     on_attach = function(_, bufnr)
+--       -- Hover actions
+--       vim.keymap.set('n', '<C-space>', rt.hover_actions.hover_actions, { buffer = bufnr })
+--       -- Code action groups
+--       vim.keymap.set('n', '<Leader>a', rt.code_action_group.code_action_group, { buffer = bufnr })
+--     end,
+--   },
+-- }
 
-rt.setup {
-  server = {
-    on_attach = function(_, bufnr)
-      -- Hover actions
-      vim.keymap.set('n', '<C-space>', rt.hover_actions.hover_actions, { buffer = bufnr })
-      -- Code action groups
-      vim.keymap.set('n', '<Leader>a', rt.code_action_group.code_action_group, { buffer = bufnr })
-    end,
-  },
-}
+-- require('typescript-tools').setup {
+--   on_attach = function() end,
+--   settings = {
+--     -- spawn additional tsserver instance to calculate diagnostics on it
+--     separate_diagnostic_server = true,
+--     -- "change"|"insert_leave" determine when the client asks the server about diagnostic
+--     publish_diagnostic_on = 'insert_leave',
+--     -- array of strings("fix_all"|"add_missing_imports"|"remove_unused"|
+--     -- "remove_unused_imports"|"organize_imports") -- or string "all"
+--     -- to include all supported code actions
+--     -- specify commands exposed as code_actions
+--     expose_as_code_action = {},
+--     -- string|nil - specify a custom path to `tsserver.js` file, if this is nil or file under path
+--     -- not exists then standard path resolution strategy is applied
+--     tsserver_path = nil,
+--     -- specify a list of plugins to load by tsserver, e.g., for support `styled-components`
+--     -- (see 💅 `styled-components` support section)
+--     tsserver_plugins = {},
+--     -- this value is passed to: https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes
+--     -- memory limit in megabytes or "auto"(basically no limit)
+--     tsserver_max_memory = 'auto',
+--     -- described below
+--     tsserver_format_options = {},
+--     tsserver_file_preferences = {},
+--     -- locale of all tsserver messages, supported locales you can find here:
+--     -- https://github.com/microsoft/TypeScript/blob/3c221fc086be52b19801f6e8d82596d04607ede6/src/compiler/utilitiesPublic.ts#L620
+--     tsserver_locale = 'en',
+--     -- mirror of VSCode's `typescript.suggest.completeFunctionCalls`
+--     complete_function_calls = false,
+--     include_completions_with_insert_text = true,
+--     -- CodeLens
+--     -- WARNING: Experimental feature also in VSCode, because it might hit performance of server.
+--     -- possible values: ("off"|"all"|"implementations_only"|"references_only")
+--     code_lens = 'off',
+--     -- by default code lenses are displayed on all referencable values and for some of you it can
+--     -- be too much this option reduce count of them by removing member references from lenses
+--     disable_member_code_lens = true,
+--     -- JSXCloseTag
+--     -- WARNING: it is disabled by default (maybe you configuration or distro already uses nvim-ts-autotag,
+--     -- that maybe have a conflict if enable this feature. )
+--     jsx_close_tag = {
+--       enable = false,
+--       filetypes = { 'javascriptreact', 'typescriptreact' },
+--     },
+--   },
+-- }
 
-require('typescript-tools').setup {
-  on_attach = function() end,
-  settings = {
-    -- spawn additional tsserver instance to calculate diagnostics on it
-    separate_diagnostic_server = true,
-    -- "change"|"insert_leave" determine when the client asks the server about diagnostic
-    publish_diagnostic_on = 'insert_leave',
-    -- array of strings("fix_all"|"add_missing_imports"|"remove_unused"|
-    -- "remove_unused_imports"|"organize_imports") -- or string "all"
-    -- to include all supported code actions
-    -- specify commands exposed as code_actions
-    expose_as_code_action = {},
-    -- string|nil - specify a custom path to `tsserver.js` file, if this is nil or file under path
-    -- not exists then standard path resolution strategy is applied
-    tsserver_path = nil,
-    -- specify a list of plugins to load by tsserver, e.g., for support `styled-components`
-    -- (see 💅 `styled-components` support section)
-    tsserver_plugins = {},
-    -- this value is passed to: https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes
-    -- memory limit in megabytes or "auto"(basically no limit)
-    tsserver_max_memory = 'auto',
-    -- described below
-    tsserver_format_options = {},
-    tsserver_file_preferences = {},
-    -- locale of all tsserver messages, supported locales you can find here:
-    -- https://github.com/microsoft/TypeScript/blob/3c221fc086be52b19801f6e8d82596d04607ede6/src/compiler/utilitiesPublic.ts#L620
-    tsserver_locale = 'en',
-    -- mirror of VSCode's `typescript.suggest.completeFunctionCalls`
-    complete_function_calls = false,
-    include_completions_with_insert_text = true,
-    -- CodeLens
-    -- WARNING: Experimental feature also in VSCode, because it might hit performance of server.
-    -- possible values: ("off"|"all"|"implementations_only"|"references_only")
-    code_lens = 'off',
-    -- by default code lenses are displayed on all referencable values and for some of you it can
-    -- be too much this option reduce count of them by removing member references from lenses
-    disable_member_code_lens = true,
-    -- JSXCloseTag
-    -- WARNING: it is disabled by default (maybe you configuration or distro already uses nvim-ts-autotag,
-    -- that maybe have a conflict if enable this feature. )
-    jsx_close_tag = {
-      enable = false,
-      filetypes = { 'javascriptreact', 'typescriptreact' },
-    },
-  },
-}
-
-require('guess-indent').setup {
-  auto_cmd = true, -- Set to false to disable automatic execution
-  override_editorconfig = false, -- Set to true to override settings set by .editorconfig
-  filetype_exclude = { -- A list of filetypes for which the auto command gets disabled
-    'netrw',
-    'tutor',
-  },
-  buftype_exclude = { -- A list of buffer types for which the auto command gets disabled
-    'help',
-    'nofile',
-    'terminal',
-    'prompt',
-  },
-  on_tab_options = { -- A table of vim options when tabs are detected
-    ['expandtab'] = false,
-  },
-  on_space_options = { -- A table of vim options when spaces are detected
-    ['expandtab'] = true,
-    ['tabstop'] = 'detected', -- If the option value is 'detected', The value is set to the automatically detected indent size.
-    ['softtabstop'] = 'detected',
-    ['shiftwidth'] = 'detected',
-  },
-}
+-- require('guess-indent').setup {
+--   auto_cmd = true, -- Set to false to disable automatic execution
+--   override_editorconfig = false, -- Set to true to override settings set by .editorconfig
+--   filetype_exclude = { -- A list of filetypes for which the auto command gets disabled
+--     'netrw',
+--     'tutor',
+--   },
+--   buftype_exclude = { -- A list of buffer types for which the auto command gets disabled
+--     'help',
+--     'nofile',
+--     'terminal',
+--     'prompt',
+--   },
+--   on_tab_options = { -- A table of vim options when tabs are detected
+--     ['expandtab'] = false,
+--   },
+--   on_space_options = { -- A table of vim options when spaces are detected
+--     ['expandtab'] = true,
+--     ['tabstop'] = 'detected', -- If the option value is 'detected', The value is set to the automatically detected indent size.
+--     ['softtabstop'] = 'detected',
+--     ['shiftwidth'] = 'detected',
+--   },
+-- }
