@@ -92,11 +92,20 @@ require('lazy').setup({
   'matze/vim-move',
   'saghen/blink.cmp',
 
+  { -- c debugger UI
+    'rcarriga/nvim-dap-ui',
+    dependencies = { 'mfussenegger/nvim-dap', 'nvim-neotest/nvim-nio' },
+    config = function()
+      require('dapui').setup()
+    end,
+  },
   {
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
     opts = {},
   },
+  -- cpp debugger
+  'mfussenegger/nvim-dap',
 
   {
     'mrcjkb/rustaceanvim',
@@ -833,19 +842,32 @@ require('flutter-tools').setup {
   },
 }
 
--- local rt = require 'rust-tools'
---
--- rt.setup {
---   server = {
---     on_attach = function(_, bufnr)
---       -- Hover actions
---       vim.keymap.set('n', '<C-space>', rt.hover_actions.hover_actions, { buffer = bufnr })
---       -- Code action groups
---       vim.keymap.set('n', '<Leader>a', rt.code_action_group.code_action_group, { buffer = bufnr })
---     end,
---   },
--- }
+local dap = require 'dap'
+dap.adapters.codelldb = {
+  type = 'server',
+  port = '${port}',
+  executable = {
+    command = vim.fn.stdpath 'data' .. '/mason/bin/codelldb',
+    args = { '--port', '${port}' },
+  },
+}
 
+dap.configurations.cpp = {
+  {
+    name = 'Launch file',
+    type = 'codelldb',
+    request = 'launch',
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+    end,
+    cwd = '${workspaceFolder}',
+    stopOnEntry = false,
+  },
+}
+
+-- Reuse the config for C and Rust
+dap.configurations.c = dap.configurations.cpp
+dap.configurations.rust = dap.configurations.cpp
 -- require('typescript-tools').setup {
 --   on_attach = function() end,
 --   settings = {
@@ -921,3 +943,23 @@ vim.keymap.set('i', '{}', '{}<Left><CR><Esc>O')
 vim.keymap.set('i', '()', '()<Left>')
 vim.keymap.set('i', "''", "''<Left>")
 vim.keymap.set('i', '""', '""<Left>')
+
+local dapui = require 'dapui'
+
+dapui.setup() -- Configure the UI
+
+-- Open UI automatically when debugging starts
+dap.listeners.before.attach.dapui_config = function()
+  dapui.open()
+end
+dap.listeners.before.launch.dapui_config = function()
+  dapui.open()
+end
+
+-- Close UI automatically when debugging ends
+dap.listeners.before.event_terminated.dapui_config = function()
+  dapui.close()
+end
+dap.listeners.before.event_exited.dapui_config = function()
+  dapui.close()
+end
